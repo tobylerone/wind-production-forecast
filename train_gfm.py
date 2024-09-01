@@ -94,6 +94,35 @@ def _train_test_split(raw_dataset: pd.DataFrame, train_fraction: float, country_
 
     return X_train, X_test, y_train, y_test
 
+def _perform_algorithmic_partitioning():
+    '''Instead of training a global forecasting model on the entire dataset,
+    partitioning it into smaller almost equally sized parts has been shown
+    to improve model performance. I could perform this partition on essentially
+    any feature or combination of features (for example, grouping by countries
+    whose time series have been shown to be strongly correlated), but a better
+    solution is to perform a clustering approach such as k-means to algorithmically
+    find a more effective way to partition the dataset.
+
+    To effictively cluster time series we first have to extract richer time series
+    characteristics (autocorrelation, mean, variance, peak-to-peak distance, entropy
+    etc.) to allow the model to compare the distances between them. This can be done
+    automatically with tsfel (time series feature extraction library).
+
+    Charu C. Agarwal showed in 2001 that euclidian distance and other common distance
+    metrics are often not effective in high-dimensional space, so instead of performing
+    k-means directly on our tsfel feature dataset (which contains dozens of features),
+    we should first reduce the dimensionality and perform k-means on the lower-dimensional
+    space.
+
+    A good way to do this is to use t-SNE, which projects the higher dimensional points into
+    a lower dimensional space whilst trtying to maintain the distribution of distance between
+    each point in the original space.
+
+    Once we have a few clusters, we can separate the dataset and train a gfm for each of them,
+    which should improve performance.
+    '''
+    pass
+
 def train_gfm(
     X_train: pd.Series,
     X_test: pd.Series,
@@ -181,6 +210,8 @@ if __name__ == '__main__':
     # Remove Date feature before creating training and test set
     df = df.drop('Date', axis=1)
     
+    _perform_algorithmic_partitioning()
+    
     # Split up the dataset
     #X = df.drop(columns=['Wind_Energy_Potential'])
     #y = df['Wind_Energy_Potential']
@@ -194,7 +225,7 @@ if __name__ == '__main__':
     
     #train_gfm(X_train, X_test, y_train, y_test, save_as_filename='lightgbm_global.pkl')
     
-    _, X_test_fr, _, y_test_fr = _train_test_split(raw_dataset=df, train_fraction=0.95, country_code='DE')
+    _, X_test_fr, _, y_test_fr = _train_test_split(raw_dataset=df, train_fraction=0.95, country_code='PL')
     
     # Add datetime index back. TODO: Make this cleaner
     t = pd.date_range('1/1/1986', periods = len(X_test_fr.index), freq = 'h')
